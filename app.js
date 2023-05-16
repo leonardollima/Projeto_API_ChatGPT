@@ -1,67 +1,55 @@
-const express = require("express");
-const app = express();
-const handlebars = require("express-handlebars").engine
+const inputQuestion = document.getElementById("inputQuestion");
+const result = document.getElementById("result");
 
-app.engine("handlebars", handlebars({defaultLayout: "main"}))
-app.set("view engine", "handlebars")
+inputQuestion.addEventListener("keypress", (e) => {
+  if (inputQuestion.value && e.key === "Enter") SendQuestion();
+});
 
-app.get("/", function(req, res){
-    res.render("home")
-})
+const OPENAI_API_KEY = "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";
 
-app.listen(8081, function () {
-    console.log("Servidor Ativo!")
-})
+function SendQuestion() {
+  var sQuestion = inputQuestion.value;
 
+  fetch("https://api.openai.com/v1/completions", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + OPENAI_API_KEY,
+    },
+    body: JSON.stringify({
+      model: "text-davinci-003",
+      prompt: sQuestion,
+      max_tokens: 2048, // tamanho da resposta
+      temperature: 0.5, // criatividade na resposta
+    }),
+  })
+    .then((response) => response.json())
+    .then((json) => {
+      if (result.value) result.value += "\n";
 
+      if (json.error?.message) {
+        result.value += `Error: ${json.error.message}`;
+      } else if (json.choices?.[0].text) {
+        var text = json.choices[0].text || "Sem resposta";
 
-const { Configuration, OpenAIApi } = require("openai");
-const readlineSync = require("readline-sync");
-require("dotenv").config();
+        result.value += "Chat GPT: " + text;
+      }
 
-(async () => {
-    const configuration = new Configuration({
-        apiKey: process.env.OPENAI_API_KEY,
+      result.scrollTop = result.scrollHeight;
+    })
+    .catch((error) => console.error("Error:", error))
+    .finally(() => {
+      inputQuestion.value = "";
+      inputQuestion.disabled = false;
+      inputQuestion.focus();
     });
-    const openai = new OpenAIApi(configuration);
 
-    const history = [];
+  if (result.value) result.value += "\n\n\n";
 
-    while (true) {
-        const user_input = readlineSync.question(Handlebars);
+  result.value += `Eu: ${sQuestion}`;
+  inputQuestion.value = "Carregando...";
+  inputQuestion.disabled = true;
 
-        const messages = [];
-        for (const [input_text, completion_text] of history) {
-            messages.push({ role: "user", content: input_text });
-            messages.push({ role: "assistant", content: completion_text });
-        }
-
-        messages.push({ role: "user", content: user_input });
-
-        try {
-            const completion = await openai.createChatCompletion({
-                model: "gpt-3.5-turbo",
-                messages: messages,
-            });
-
-            const completion_text = completion.data.choices[0].message.content;
-            console.log(completion_text);
-
-
-            history.push([user_input, completion_text]);
-
-        } catch (error) {
-            if (error.response) {
-                alert(error.response.status);
-                alert(error.response.data);
-            } else {
-                alert(error.message);
-            }
-        }
-    }
-})();
-
-function resposta() {
-    resp.innerHTML = completion_text;
-
+  result.scrollTop = result.scrollHeight;
 }
